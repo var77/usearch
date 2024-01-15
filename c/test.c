@@ -8,6 +8,7 @@
 #define ASSERT(must_be_true, message)                                                                                  \
     if (!(must_be_true)) {                                                                                             \
         printf("Assert: %s\n", message);                                                                               \
+        *(int*)0 = 4;                                                                                                  \
         exit(-1);                                                                                                      \
     }
 
@@ -144,8 +145,8 @@ void test_find_vector(size_t const collection_size, size_t const dimensions) {
 
     // Find the vectors
     for (size_t i = 0; i < collection_size; i++) {
-        size_t found_count = usearch_search(index, data + i * dimensions, usearch_scalar_f32_k, collection_size, keys,
-                                            distances, &error);
+        size_t found_count = usearch_search(index, data + i * dimensions, usearch_scalar_f32_k, collection_size, 0,
+                                            keys, distances, &error);
         ASSERT(!error, error);
         ASSERT(found_count >= 1 && found_count <= collection_size, "Vector is missing");
     }
@@ -273,6 +274,11 @@ void test_save_load(size_t const collection_size, size_t const dimensions) {
     opts.metric = NULL;
     opts.quantization = usearch_scalar_unknown_k;
     opts.metric_kind = usearch_metric_unknown_k;
+    // Save and free the index
+    usearch_save(index, "usearch_index.bin", NULL, &error);
+    ASSERT(!error, error);
+    usearch_free(index, &error);
+    ASSERT(!error, error);
 
     // Reinit
     {
@@ -343,7 +349,7 @@ void test_view(size_t const collection_size, size_t const dimensions) {
     }
 
     // Save and free the index
-    usearch_save(index, "tmp.usearch", &error);
+    usearch_save(index, "usearch_index.bin", NULL, &error);
     ASSERT(!error, error);
     usearch_free(index, &error);
     ASSERT(!error, error);
