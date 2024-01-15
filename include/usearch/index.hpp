@@ -2921,6 +2921,7 @@ class index_gt {
     }
 
 #pragma endregion
+    using node_retriever_t = void* (*)(void* ctx, int index);
 
   private:
     // todo:: these can also be moved to node_at, along with class neighbors_ref_t definition
