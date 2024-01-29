@@ -53,6 +53,25 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma warning(push)
 #pragma warning(disable : 4101)
+
+#if !defined(SIMSIMD_TARGET_X86_AVX512) && defined(USEARCH_DEFINED_LINUX)
+#if defined(__AVX512F__) && defined(__AVX512FP16__) && defined(__AVX512VNNI__) && defined(__AVX512VPOPCNTDQ__)
+#define SIMSIMD_TARGET_X86_AVX512 1
+#endif
+#endif
+
+#if !defined(SIMSIMD_TARGET_ARM_SVE) && defined(USEARCH_DEFINED_LINUX)
+#define SIMSIMD_TARGET_ARM_SVE 1
+#endif
+
+#if !defined(SIMSIMD_TARGET_X86_AVX2) && (defined(USEARCH_DEFINED_LINUX) || defined(USEARCH_DEFINED_APPLE))
+#define SIMSIMD_TARGET_X86_AVX2 1
+#endif
+
+#if !defined(SIMSIMD_TARGET_ARM_NEON) && (defined(USEARCH_DEFINED_LINUX) || defined(USEARCH_DEFINED_APPLE))
+#define SIMSIMD_TARGET_ARM_NEON 1
+#endif
+
 #include <simsimd/simsimd.h>
 #pragma warning(pop)
 #pragma GCC diagnostic pop
