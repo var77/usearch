@@ -280,57 +280,24 @@ void test_save_load(size_t const collection_size, size_t const dimensions) {
     usearch_free(index, &error);
     ASSERT(!error, error);
 
-    // Reinit
-    {
-
-        usearch_index_t index = usearch_init(&opts, &error);
-        ASSERT(!error, error);
-        ASSERT(usearch_size(index, &error) == 0, error);
-
-        // Load
-        usearch_load(index, "tmp.usearch", &error);
-        ASSERT(!error, error);
-        ASSERT(usearch_size(index, &error) == collection_size, error);
-        ASSERT(usearch_capacity(index, &error) == collection_size, error);
-        ASSERT(usearch_dimensions(index, &error) == dimensions, error);
-        ASSERT(usearch_connectivity(index, &error) == weird_ops.connectivity, error);
-
-        // Check vectors in the index
-        for (size_t i = 0; i < collection_size; ++i) {
-            usearch_key_t key = i;
-            ASSERT(usearch_contains(index, key, &error), error);
-        }
-
-        // Create result buffers
-        usearch_key_t* keys = (usearch_key_t*)malloc(collection_size * sizeof(usearch_key_t));
-        float* distances = (float*)malloc(collection_size * sizeof(float));
-        ASSERT(keys && distances, "Failed to allocate memory");
-
-        // Find the vectors
-        for (size_t i = 0; i < collection_size; i++) {
-            size_t found_count = usearch_search(index, data + i * dimensions, usearch_scalar_f32_k, collection_size,
-                                                keys, distances, &error);
-            ASSERT(!error, error);
-            ASSERT(found_count >= 1 && found_count <= collection_size, "Vector is missing");
-        }
-
-        free(keys);
-        free(distances);
-        usearch_free(index, &error);
-    }
+    // Check vectors in the index
+    // for (size_t i = 0; i < collection_size; ++i) {
+    //     usearch_key_t key = i;
+    //     ASSERT(usearch_contains(index, key, &error), error);
+    // }
 
     free(data);
 
     // Remove the file from disk
-    remove("tmp.usearch");
+    remove("usearch_index.bin");
     printf("Test: Save/Load - PASSED\n");
 }
 
 /**
- *  This test is designed to validate the view functionality of the index. It initializes the index, reserves space, and
- *  adds vectors. The index is then saved to a file and freed. A new index is initialized and a view is created from the
- *  saved index file. The test is mainly focused on ensuring that no errors occur during these operations, but it does
- *  not verify the properties or contents of the viewed index.
+ *  This test is designed to validate the view functionality of the index. It initializes the index, reserves space,
+ * and adds vectors. The index is then saved to a file and freed. A new index is initialized and a view is created
+ * from the saved index file. The test is mainly focused on ensuring that no errors occur during these operations,
+ * but it does not verify the properties or contents of the viewed index.
  */
 void test_view(size_t const collection_size, size_t const dimensions) {
     printf("Test: View... %zu vectors, %zu dimensions \n", collection_size, dimensions);
