@@ -3,6 +3,7 @@ fn main() {
 
     build
         .file("rust/lib.cpp")
+        .flag_if_supported("-std=c++17")
         .flag_if_supported("-Wno-unknown-pragmas")
         .warnings(false)
         .include("include")
