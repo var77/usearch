@@ -1,5 +1,6 @@
 #include "lib.hpp"
 #include "usearch/rust/lib.rs.h"
+#include "usearch/storage.hpp"
 
 using namespace unum::usearch;
 using namespace unum;
@@ -136,5 +137,12 @@ std::unique_ptr<NativeIndex> new_native_index(IndexOptions const& options) {
         throw std::invalid_argument("Unsupported metric or scalar type");
     index_dense_config_t config(options.connectivity, options.expansion_add, options.expansion_search);
     config.multi = options.multi;
-    return wrap(index_t::make(metric, config));
+    storage_options opts{};
+    opts.dimensions = options.dimensions;
+    opts.pq = options.pq_output;
+    assert(options.pq_output == options.pq_construction);
+    opts.num_centroids = options.num_centroids;
+    opts.num_subvectors = options.num_subvectors;
+    opts.scalar_bytes = bits_per_scalar(scalar_kind) / 8;
+    return wrap(index_t::make(metric, opts, options.num_threads, config, options.codebook));
 }

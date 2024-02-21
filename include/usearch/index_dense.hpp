@@ -301,7 +301,6 @@ class index_dense_gt {
     using key_t = vector_key_t;
     using compressed_slot_t = compressed_slot_at;
     using distance_t = distance_punned_t;
-    using node_t = node_at<vector_key_t, compressed_slot_at>;
     using metric_t = metric_punned_t;
 
     using member_ref_t = member_ref_gt<vector_key_t>;
@@ -330,31 +329,41 @@ class index_dense_gt {
     /// @brief Punned metric object.
     class metric_proxy_t {
         index_dense_gt const* index_ = nullptr;
+        // todo:: unnecessary outside of pq: make it compile time constant
+        std::size_t thread_{};
+        size_t bytes_per_vector_{};
 
       public:
-        metric_proxy_t(index_dense_gt const& index) noexcept : index_(&index) {}
+        metric_proxy_t(index_dense_gt const& index, std::size_t thread) noexcept
+            : index_(&index), thread_(thread), bytes_per_vector_(index_->metric_.bytes_per_vector()) {}
 
-        inline distance_t operator()(byte_t const* a, member_cref_t b) const noexcept { return f(a, v(b)); }
-        inline distance_t operator()(member_cref_t a, member_cref_t b) const noexcept { return f(v(a), v(b)); }
+        inline distance_t operator()(byte_t const* a, member_cref_t b) const noexcept { return f(a, v(b, false)); }
+        inline distance_t operator()(member_cref_t a, member_cref_t b) const noexcept {
+            return f(v(a, true), v(b, false));
+        }
 
-        inline distance_t operator()(byte_t const* a, member_citerator_t b) const noexcept { return f(a, v(b)); }
+        inline distance_t operator()(byte_t const* a, member_citerator_t b) const noexcept { return f(a, v(b, false)); }
         inline distance_t operator()(member_citerator_t a, member_citerator_t b) const noexcept {
-            return f(v(a), v(b));
+            return f(v(a, true), v(b, false));
         }
 
         inline distance_t operator()(byte_t const* a, byte_t const* b) const noexcept { return f(a, b); }
 
-        inline byte_t const* v(member_cref_t m) const noexcept { return index_->storage_.get_vector_at(get_slot(m)); }
-        inline byte_t const* v(member_citerator_t m) const noexcept {
-            return index_->storage_.get_vector_at(get_slot(m));
+        inline byte_t const* v(member_citerator_t m, bool left_v) const noexcept {
+            byte_t* decompressed_data =
+                index_->vector_decompress_buffer_.data() + bytes_per_vector_ * (2 * thread_ + (size_t)left_v);
+            assert(bytes_per_vector_ * thread_ < index_->vector_decompress_buffer_.size());
+            return index_->storage_.get_vector_at(get_slot(m), decompressed_data);
         }
+
         inline distance_t f(byte_t const* a, byte_t const* b) const noexcept { return index_->metric_(a, b); }
     };
 
-    index_dense_config_t config_;
+    index_dense_config_t config_{};
     index_t* typed_ = nullptr;
 
-    mutable std::vector<byte_t> cast_buffer_;
+    mutable std::vector<byte_t> cast_buffer_{};
+    mutable std::vector<byte_t> vector_decompress_buffer_{};
     struct casts_t {
         cast_t from_b1x8;
         cast_t from_i8;
@@ -375,7 +384,7 @@ class index_dense_gt {
     /// @brief The underlying storage provider for this index that determines file storage layout,
     /// implements serialization/deserialization routines, and provides an API to add, update and
     /// retrieve vectors and hnsw graph nodes.
-    storage_t storage_{config_};
+    storage_t storage_{{}, config_};
 
     /// @brief Originally forms and array of integers [0, threads], marking all.
     mutable std::vector<std::size_t> available_threads_;
@@ -437,12 +446,13 @@ class index_dense_gt {
 
     index_dense_gt() = default;
     index_dense_gt(index_dense_gt&& other)
-        : config_(std::move(other.config_)),           //
-          typed_(exchange(other.typed_, nullptr)),     //
-          cast_buffer_(std::move(other.cast_buffer_)), //
-          casts_(std::move(other.casts_)),             //
-          metric_(std::move(other.metric_)),           //
-          storage_(std::move(other.storage_)),         //
+        : config_(std::move(other.config_)),                                     //
+          typed_(exchange(other.typed_, nullptr)),                               //
+          cast_buffer_(std::move(other.cast_buffer_)),                           //
+          vector_decompress_buffer_(std::move(other.vector_decompress_buffer_)), //
+          casts_(std::move(other.casts_)),                                       //
+          metric_(std::move(other.metric_)),                                     //
+          storage_(std::move(other.storage_)),                                   //
 
           available_threads_(std::move(other.available_threads_)), //
           slot_lookup_(std::move(other.slot_lookup_)),             //
@@ -467,6 +477,7 @@ class index_dense_gt {
 
         std::swap(typed_, other.typed_);
         std::swap(cast_buffer_, other.cast_buffer_);
+        std::swap(vector_decompress_buffer_, other.vector_decompress_buffer_);
         std::swap(casts_, other.casts_);
         std::swap(metric_, other.metric_);
         std::swap(storage_, other.storage_);
@@ -496,17 +507,26 @@ class index_dense_gt {
      *  @param[in] free_key The key used for freed vectors (optional).
      *  @return An instance of ::index_dense_gt.
      */
-    static index_dense_gt make(                                        //
-        metric_t metric,                                               //
-        index_dense_config_t config = {},                              //
-        std::size_t num_threads = std::thread::hardware_concurrency(), //
+    static index_dense_gt make(           //
+        metric_t metric,                  //
+        const storage_options& options,   //
+        size_t num_threads,               //
+        index_dense_config_t config = {}, //
+        const float* codebook = nullptr,  //
         vector_key_t free_key = default_free_value<vector_key_t>()) {
 
         scalar_kind_t scalar_kind = metric.scalar_kind();
+        if (num_threads == 0) {
+            num_threads = std::thread::hardware_concurrency();
+        } else {
+            assert(num_threads <= std::thread::hardware_concurrency());
+        }
 
         index_dense_gt result;
         result.config_ = config;
         result.cast_buffer_.resize(num_threads * metric.bytes_per_vector());
+        // the vector is used in measure() calls which touches at most 2 vectors at once
+        result.vector_decompress_buffer_.resize(num_threads * metric.bytes_per_vector() * 2);
         result.casts_ = make_casts_(scalar_kind);
         result.metric_ = metric;
         result.free_key_ = free_key;
@@ -517,7 +537,11 @@ class index_dense_gt {
 
         // Available since C11, but only C++17, so we use the C version.
         index_t* raw = index_allocator_t{}.allocate(1);
-        result.storage_ = storage_t(config);
+        if (codebook != nullptr) {
+            result.storage_ = storage_t(options, config, codebook);
+        } else {
+            result.storage_ = storage_t(options, config);
+        }
         new (raw) index_t(&result.storage_, config);
         result.typed_ = raw;
         return result;
@@ -650,6 +674,9 @@ class index_dense_gt {
                 return result;
 
             key_and_slot_t a_key_and_slot = *a_it;
+            // in lantern storage we assume each thread will access at most one managed vector at a time
+            // this function will not work with that assumption, but is also currently not used anywhere
+            assert(false);
             byte_t const* a_vector = storage_.get_vector_at(a_key_and_slot.slot);
             key_and_slot_t b_key_and_slot = *b_it;
             byte_t const* b_vector = storage_.get_vector_at(b_key_and_slot.slot);
@@ -711,7 +738,7 @@ class index_dense_gt {
         thread_lock_t lock = thread_lock_(thread);
         cluster_config.thread = lock.thread_id;
         cluster_config.expansion = config_.expansion_search;
-        metric_proxy_t metric{*this};
+        metric_proxy_t metric{*this, lock.thread_id};
         auto allow = [=](member_cref_t const& member) noexcept { return member.key != free_key_; };
 
         // Find the closest cluster for any vector under that key.
@@ -769,7 +796,6 @@ class index_dense_gt {
         free_keys_.clear();
 
         // Reset the thread IDs.
-        available_threads_.resize(std::thread::hardware_concurrency());
         std::iota(available_threads_.begin(), available_threads_.end(), 0ul);
     }
 
@@ -950,6 +976,8 @@ class index_dense_gt {
     void set_node_retriever(void* retriever_ctx, node_retriever_t node_retriever, node_retriever_t node_retriever_mut) {
         typed_->set_node_retriever(retriever_ctx, node_retriever, node_retriever_mut);
     }
+
+    typename storage_t::storage_metadata storage_metadata() { return typed_->storage_metadata(); }
 
     /**
      *  @brief Saves the index to a file.
@@ -1289,6 +1317,7 @@ class index_dense_gt {
 
         other.config_ = config_;
         other.cast_buffer_ = cast_buffer_;
+        other.vector_decompress_buffer_ = vector_decompress_buffer_;
         other.casts_ = casts_;
 
         other.metric_ = metric_;
@@ -1394,7 +1423,7 @@ class index_dense_gt {
         update_config.thread = lock.thread_id;
         update_config.expansion = config_.expansion_add;
 
-        metric_proxy_t metric{*this};
+        metric_proxy_t metric{*this, lock.thread_id};
         usearch_assert_m(!reuse_node, "Updates not supported with Lantern");
         return typed_->add(key, level, vector_data, metric, update_config, on_success);
     }
@@ -1420,7 +1449,7 @@ class index_dense_gt {
         search_config.exact = exact;
 
         auto allow = [=](member_cref_t const& member) noexcept { return member.key != free_key_; };
-        return typed_->search(vector_data, wanted, metric_proxy_t{*this}, search_config, allow);
+        return typed_->search(vector_data, wanted, metric_proxy_t{*this, lock.thread_id}, search_config, allow);
     }
 
     template <typename scalar_at>
@@ -1443,7 +1472,7 @@ class index_dense_gt {
         cluster_config.expansion = config_.expansion_search;
 
         auto allow = [=](member_cref_t const& member) noexcept { return member.key != free_key_; };
-        return typed_->cluster(vector_data, level, metric_proxy_t{*this}, cluster_config, allow);
+        return typed_->cluster(vector_data, level, metric_proxy_t{*this, lock.thread_id}, cluster_config, allow);
     }
 
     template <typename scalar_at>

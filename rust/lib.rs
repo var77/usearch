@@ -36,8 +36,14 @@ pub mod ffi {
         quantization: ScalarKind,
         connectivity: usize,
         expansion_add: usize,
+        num_threads: usize,
         expansion_search: usize,
         multi: bool,
+        pq_output: bool,
+        pq_construction: bool,
+        num_centroids: usize,
+        num_subvectors: usize,
+        codebook: *const f32,
     }
 
     // C++ types and signatures exposed to Rust.
@@ -109,6 +115,12 @@ impl Default for ffi::IndexOptions {
             expansion_add: 2,
             expansion_search: 3,
             multi: false,
+            num_threads: 0, //automatic
+            pq_output: false,
+            pq_construction: false,
+            num_centroids: 0,
+            num_subvectors: 0,
+            codebook: std::ptr::null(),
         }
     }
 }
@@ -123,6 +135,12 @@ impl Clone for ffi::IndexOptions {
             expansion_add: (self.expansion_add),
             expansion_search: (self.expansion_search),
             multi: (self.multi),
+            num_threads: (self.num_threads),
+            pq_output: (self.pq_output),
+            pq_construction: (self.pq_construction),
+            num_centroids: (self.num_centroids),
+            num_subvectors: (self.num_subvectors),
+            codebook: (self.codebook),
         }
     }
 }

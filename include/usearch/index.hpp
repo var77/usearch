@@ -2965,6 +2965,8 @@ class index_gt {
         storage_->set_node_retriever(retriever_ctx, external_node_retriever, external_node_retriever_mut);
     }
 
+    typename storage_t::storage_metadata storage_metadata() noexcept { return storage_->metadata(); }
+
   private:
     // todo:: these can also be moved to node_at, along with class neighbors_ref_t definition
     inline neighbors_ref_t neighbors_base_(node_t node) const noexcept { return {node.neighbors_tape()}; }
