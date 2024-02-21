@@ -107,9 +107,13 @@ USEARCH_EXPORT typedef struct usearch_init_options_t {
     usearch_node_retriever_t retriever;
     usearch_node_retriever_t retriever_mut;
     size_t num_threads;
+    bool pq;
+    size_t num_centroids;
+    size_t num_subvectors;
 } usearch_init_options_t;
 
 USEARCH_EXPORT typedef struct {
+    usearch_init_options_t init_options;
     // todo:: embed usearch_init_options_t in this, in stead of repeating fields
     double inverse_log_connectivity;
     // size_t connectivity_max_base;
@@ -120,7 +124,6 @@ USEARCH_EXPORT typedef struct {
     size_t expansion_add;
     size_t connectivity;
     usearch_metric_kind_t metric_kind;
-
 } usearch_index_metadata_t;
 
 USEARCH_EXPORT typedef usearch_index_metadata_t metadata_t;
@@ -128,10 +131,11 @@ USEARCH_EXPORT typedef usearch_index_metadata_t metadata_t;
 /**
  *  @brief Initializes a new instance of the index.
  *  @param options Pointer to the `usearch_init_options_t` structure containing initialization options.
+ *  @param codebook When creating a pq-quantized index, this points to the codebook to use, otherwise is null
  *  @param[out] error Pointer to a string where the error message will be stored, if an error occurs.
  *  @return A handle to the initialized USearch index, or `NULL` on failure.
  */
-USEARCH_EXPORT usearch_index_t usearch_init(usearch_init_options_t* options, usearch_error_t* error);
+USEARCH_EXPORT usearch_index_t usearch_init(usearch_init_options_t* options, float* codebook, usearch_error_t* error);
 
 /**
  *  @brief Frees the resources associated with the index.
