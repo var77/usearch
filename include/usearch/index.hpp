@@ -3230,9 +3230,6 @@ class index_gt {
                 prefetch(missing_candidates.begin(), missing_candidates.end());
             }
 
-            // Assume the worst-case when reserving memory
-            if (!visits.reserve(visits.size() + candidate_neighbors.size()))
-                return false;
 
             for (compressed_slot_t successor_slot : candidate_neighbors) {
                 if (visits.set(successor_slot))
@@ -3299,9 +3296,6 @@ class index_gt {
                 prefetch(missing_candidates.begin(), missing_candidates.end());
             }
 
-            // Assume the worst-case when reserving memory
-            if (!visits.reserve(visits.size() + candidate_neighbors.size()))
-                return false;
 
             for (compressed_slot_t successor_slot : candidate_neighbors) {
                 if (visits.set(successor_slot))
