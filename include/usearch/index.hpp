@@ -3224,7 +3224,6 @@ class index_gt {
                 break;
 
             next.pop();
-            context.iteration_cycles++;
 
             compressed_slot_t candidate_slot = candidacy.slot;
             if (new_slot == candidate_slot)
@@ -3244,6 +3243,7 @@ class index_gt {
                 if (visits.set(successor_slot))
                     continue;
 
+                context.iteration_cycles++;
                 // node_lock_t successor_lock = node_lock_(successor_slot);
                 distance_t successor_dist = context.measure(query, citerator_at(successor_slot), metric);
                 if (top.size() < top_limit || successor_dist < radius) {
@@ -3295,7 +3295,6 @@ class index_gt {
                 break;
 
             next.pop();
-            context.iteration_cycles++;
 
             neighbors_ref_t candidate_neighbors = neighbors_base_(storage_->get_node_at(candidate.slot));
 
@@ -3310,6 +3309,7 @@ class index_gt {
                 if (visits.set(successor_slot))
                     continue;
 
+                context.iteration_cycles++;
                 distance_t successor_dist = context.measure(query, citerator_at(successor_slot), metric);
                 if (top.size() < top_limit || successor_dist < radius) {
                     // This can substantially grow our priority queue:
