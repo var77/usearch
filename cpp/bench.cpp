@@ -364,7 +364,7 @@ static void single_shot(dataset_at& dataset, index_at& index, bool construct = t
     }
 
     std::printf("Recall@1 %.2f %%\n", recall_at_1 * 100.f / dataset.queries_count());
-    std::printf("Recall %.2f %%\n", recall_full * 100.f / dataset.queries_count());
+    std::printf("Recall@%ld %.2f %%\n", dataset.neighborhood_size(), recall_full * 100.f / dataset.queries_count());
 }
 
 void handler(int sig) {
