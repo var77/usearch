@@ -3412,7 +3412,7 @@ class index_gt {
         while (!next.empty()) {
 
             candidate_t candidate = next.top();
-            if ((-candidate.distance) > radius)
+            if ((-candidate.distance) > radius && top.size() == top_limit)
                 break;
 
             next.pop();
