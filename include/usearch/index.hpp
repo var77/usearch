@@ -2508,7 +2508,7 @@ class index_gt {
         }
         // if we were not given a slot explicitly, use sequential ID as slot
         if (slot == default_free_value<compressed_slot_t>()) {
-            slot = old_count;
+            slot = static_cast<compressed_slot_t>(static_cast<uint64_t>(old_count));
         }
 
         // Allocate the neighbors
@@ -3171,18 +3171,18 @@ class index_gt {
             // If `new_slot` is already present in the neighboring connections of `close_slot`
             // then no need to modify any connections or run the heuristics.
             if (close_header.size() < connectivity_max) {
-                close_header.push_back(static_cast<compressed_slot_t>(new_slot));
+                close_header.push_back(static_cast<compressed_slot_t>(static_cast<uint64_t>(new_slot)));
                 continue;
             }
 
             // To fit a new connection we need to drop an existing one.
             top.clear();
             usearch_assert_m((top.reserve(close_header.size() + 1)), "The memory must have been reserved in `add`");
-            top.insert_reserved(
-                {context.measure(value, citerator_at(close_slot), metric), static_cast<compressed_slot_t>(new_slot)});
+            top.insert_reserved({context.measure(value, citerator_at(close_slot), metric),
+                                 static_cast<compressed_slot_t>(static_cast<uint64_t>(new_slot))});
             for (compressed_slot_t successor_slot : close_header)
-                top.insert_reserved(
-                    {context.measure(citerator_at(close_slot), citerator_at(successor_slot), metric), successor_slot});
+                top.insert_reserved({context.measure(value, citerator_at(close_slot), metric),
+                                     static_cast<compressed_slot_t>(static_cast<uint64_t>(new_slot))});
 
             // Export the results:
             close_header.clear();
@@ -3328,9 +3328,9 @@ class index_gt {
             prefetch(citerator_at(start_slot), citerator_at(start_slot + 1));
 
         distance_t radius = context.measure(query, citerator_at(start_slot), metric);
-        next.insert_reserved({-radius, static_cast<compressed_slot_t>(start_slot)});
-        top.insert_reserved({radius, static_cast<compressed_slot_t>(start_slot)});
-        visits.set(start_slot);
+        next.insert_reserved({-radius, static_cast<compressed_slot_t>(static_cast<uint64_t>(start_slot))});
+        top.insert_reserved({radius, static_cast<compressed_slot_t>(static_cast<uint64_t>(start_slot))});
+        visits.set(static_cast<uint48_t>(static_cast<uint64_t>(start_slot)));
 
         while (!next.empty()) {
 
@@ -3404,9 +3404,9 @@ class index_gt {
             prefetch(citerator_at(start_slot), citerator_at(start_slot + 1));
 
         distance_t radius = context.measure(query, citerator_at(start_slot), metric);
-        next.insert_reserved({-radius, static_cast<compressed_slot_t>(start_slot)});
-        top.insert_reserved({radius, static_cast<compressed_slot_t>(start_slot)});
-        visits.set(start_slot);
+        next.insert_reserved({-radius, static_cast<compressed_slot_t>(static_cast<uint64_t>(start_slot))});
+        top.insert_reserved({radius, static_cast<compressed_slot_t>(static_cast<uint64_t>(start_slot))});
+        visits.set(static_cast<uint48_t>(static_cast<uint64_t>(start_slot)));
 
         while (!next.empty()) {
 
@@ -3470,7 +3470,7 @@ class index_gt {
                     continue;
 
             distance_t distance = context.measure(query, citerator_at(i), metric);
-            top.insert(candidate_t{distance, static_cast<compressed_slot_t>(i)}, count);
+            top.insert(candidate_t{distance, static_cast<compressed_slot_t>(static_cast<uint64_t>(i))}, count);
         }
     }
 

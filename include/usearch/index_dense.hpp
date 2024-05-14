@@ -1541,9 +1541,10 @@ class index_dense_gt {
         for (std::size_t i = 0; i != typed_->size(); ++i) {
             member_cref_t member = typed_->at(i);
             if (member.key == free_key_)
-                free_keys_.push(static_cast<compressed_slot_t>(i));
+                free_keys_.push(static_cast<compressed_slot_t>(static_cast<uint64_t>(i)));
             else if (config_.enable_key_lookups)
-                slot_lookup_.try_emplace(key_and_slot_t{vector_key_t(member.key), static_cast<compressed_slot_t>(i)});
+                slot_lookup_.try_emplace(
+                    key_and_slot_t{vector_key_t(member.key), static_cast<compressed_slot_t>(static_cast<uint64_t>(i))});
         }
     }
 
