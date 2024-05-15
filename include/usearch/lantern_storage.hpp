@@ -84,8 +84,8 @@ class lantern_storage_gt {
       public:
         codebook_t() = default;
         codebook_t(const float* tape, size_t dimensions, size_t num_centroids, size_t num_subvectors)
-            : tape_(tape), dimensions_(dimensions), num_centroids_(num_centroids),
-              subvector_dim_(dimensions / num_subvectors) {
+            : tape_(tape), dimensions_(dimensions), subvector_dim_(dimensions / num_subvectors),
+              num_centroids_(num_centroids) {
             expect(tape != nullptr);
             expect(dimensions % num_subvectors == 0, "currently vector dimensions must be divisible to num_subvectors");
             expect(dimensions_ < 2000, "vectors larger than 2k dimensions not supported");

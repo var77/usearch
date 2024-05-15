@@ -2571,6 +2571,7 @@ class index_gt {
 
     /*
      * Same as above but does not take a level argument and assumes nodes are generated internally
+     * and uses internal auto-incremented slot ids
      **/
     template <                                   //
         typename value_at,                       //
@@ -2583,7 +2584,7 @@ class index_gt {
         index_update_config_t config = {},                      //
         callback_at&& callback = callback_at{},                 //
         prefetch_at&& prefetch = prefetch_at{}) usearch_noexcept_m {
-        return add(key, -1, value, metric, config, callback, prefetch);
+        return add(key, -1, default_free_value<compressed_slot_t>(), value, metric, config, callback, prefetch);
     }
 
     /**
