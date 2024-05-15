@@ -339,7 +339,6 @@ void search_many( //
 template <typename dataset_at, typename index_at> //
 static void single_shot(dataset_at& dataset, index_at& index, bool construct = true) {
     using distance_t = typename index_at::distance_t;
-    constexpr default_key_t missing_key = std::numeric_limits<default_key_t>::max();
 
     std::printf("\n");
     std::printf("------------\n");
@@ -503,7 +502,7 @@ void run_punned(dataset_at& dataset, args_t const& args, index_config_t config, 
         std::mt19937 gen(rd());
         std::uniform_real_distribution<> dist(0.0, 1.0);
 
-        for (int i = 0; i < codebook.size(); i++) {
+        for (size_t i = 0; i < codebook.size(); i++) {
             dist(gen);
         }
     }
