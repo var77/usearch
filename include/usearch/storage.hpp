@@ -410,6 +410,13 @@ class storage_v2_at {
     inline size_t node_size_bytes(std::size_t idx) const noexcept { return get_node_at(idx).node_size_bytes(pre_); }
     bool is_immutable() const noexcept { return bool(viewed_file_); }
     storage_metadata_t metadata() { return {}; }
+    struct hash_seq_gt {
+        std::size_t operator()(compressed_slot_at const& element) const noexcept {
+            return std::hash<std::size_t>{}(element);
+        }
+    };
+    using compressed_slot_hasher_t = hash_seq_gt;
+    using compressed_slot_hasher = hash_seq_gt;
 
     using lock_type = node_lock_t;
 
