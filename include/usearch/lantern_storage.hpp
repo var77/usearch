@@ -301,8 +301,8 @@ class lantern_storage_gt {
     // identity function is really bad for the growing hash table, so we will provide a custom one that ignores
     // offsetnumber and forces blocknumber only for hash bucket consideration
     struct hash_gt_tid {
-        std::size_t operator()(compressed_slot_at const& element) const noexcept {
-            return std::hash<std::size_t>{}(element | (element >> 16));
+        std::uint64_t operator()(compressed_slot_at const& element) const noexcept {
+            return std::hash<std::uint64_t>{}(element | (element >> 16));
         }
     };
     struct hash_gt_seq {
