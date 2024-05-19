@@ -1703,28 +1703,28 @@ using default_distance_t = float;
 
 template <typename key_at = default_key_t> struct member_gt {
     key_at key;
-    std::size_t slot;
+    std::uint64_t slot;
 };
 
-template <typename key_at> inline std::size_t get_slot(member_gt<key_at> const& m) noexcept { return m.slot; }
+template <typename key_at> inline std::uint64_t get_slot(member_gt<key_at> const& m) noexcept { return m.slot; }
 template <typename key_at> inline key_at get_key(member_gt<key_at> const& m) noexcept { return m.key; }
 
 template <typename key_at = default_key_t> struct member_cref_gt {
     misaligned_ref_gt<key_at const> key;
-    std::size_t slot;
+    std::uint64_t slot;
 };
 
-template <typename key_at> inline std::size_t get_slot(member_cref_gt<key_at> const& m) noexcept { return m.slot; }
+template <typename key_at> inline std::uint64_t get_slot(member_cref_gt<key_at> const& m) noexcept { return m.slot; }
 template <typename key_at> inline key_at get_key(member_cref_gt<key_at> const& m) noexcept { return m.key; }
 
 template <typename key_at = default_key_t> struct member_ref_gt {
     misaligned_ref_gt<key_at> key;
-    std::size_t slot;
+    std::uint64_t slot;
 
     inline operator member_cref_gt<key_at>() const noexcept { return {key.ptr(), slot}; }
 };
 
-template <typename key_at> inline std::size_t get_slot(member_ref_gt<key_at> const& m) noexcept { return m.slot; }
+template <typename key_at> inline std::uint64_t get_slot(member_ref_gt<key_at> const& m) noexcept { return m.slot; }
 template <typename key_at> inline key_at get_key(member_ref_gt<key_at> const& m) noexcept { return m.key; }
 
 using level_t = std::int16_t;
@@ -1979,7 +1979,7 @@ class index_gt {
 
         friend class index_gt;
         member_iterator_gt() noexcept {}
-        member_iterator_gt(index_t* index, std::size_t slot) noexcept : index_(index), slot_(slot) {}
+        member_iterator_gt(index_t* index, std::uint64_t slot) noexcept : index_(index), slot_(slot) {}
 
         index_t* index_{};
         compressed_slot_t slot_{};
@@ -1994,7 +1994,7 @@ class index_gt {
         reference operator*() const noexcept { return {index_->storage_->get_node_at(slot_).key(), slot_}; }
         vector_key_t key() const noexcept { return index_->storage_->get_node_at(slot_).key(); }
 
-        friend inline std::size_t get_slot(member_iterator_gt const& it) noexcept { return it.slot_; }
+        friend inline std::uint64_t get_slot(member_iterator_gt const& it) noexcept { return it.slot_; }
         friend inline vector_key_t get_key(member_iterator_gt const& it) noexcept { return it.key(); }
 
         // clang-format off
@@ -2206,10 +2206,10 @@ class index_gt {
     member_iterator_t begin() noexcept { return {this, 0}; }
     member_iterator_t end() noexcept { return {this, size()}; }
 
-    member_ref_t at(std::size_t slot) noexcept { return {storage_->get_node_at(slot).key(), slot}; }
-    member_cref_t at(std::size_t slot) const noexcept { return {storage_->get_node_at(slot).ckey(), slot}; }
-    member_iterator_t iterator_at(std::size_t slot) noexcept { return {this, slot}; }
-    member_citerator_t citerator_at(std::size_t slot) const noexcept { return {this, slot}; }
+    member_ref_t at(std::uint64_t slot) noexcept { return {storage_->get_node_at(slot).key(), slot}; }
+    member_cref_t at(std::uint64_t slot) const noexcept { return {storage_->get_node_at(slot).ckey(), slot}; }
+    member_iterator_t iterator_at(std::uint64_t slot) noexcept { return {this, slot}; }
+    member_citerator_t citerator_at(std::uint64_t slot) const noexcept { return {this, slot}; }
 
     dynamic_allocator_t const& dynamic_allocator() const noexcept { return dynamic_allocator_; }
 
