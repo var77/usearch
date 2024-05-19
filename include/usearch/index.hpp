@@ -850,10 +850,7 @@ class usearch_pack_m uint48_t {
   public:
     inline uint48_t() noexcept { broadcast(0); }
     inline uint48_t(std::uint32_t n) noexcept { std::memcpy(&octets, &n, 4); }
-
-#ifdef USEARCH_64BIT_ENV
     inline uint48_t(std::uint64_t n) noexcept { std::memcpy(octets, &n, 6); }
-#endif
 
     uint48_t(uint48_t&&) = default;
     uint48_t(uint48_t const&) = default;
@@ -861,22 +858,11 @@ class usearch_pack_m uint48_t {
     uint48_t& operator=(uint48_t const&) = default;
 
 #if defined(USEARCH_DEFINED_CLANG) && defined(USEARCH_DEFINED_APPLE)
-    inline uint48_t(std::size_t n) noexcept {
-#ifdef USEARCH_64BIT_ENV
-        std::memcpy(octets, &n, 6);
-#else
-        std::memcpy(octets, &n, 4);
-#endif
-    }
 #endif
 
-    inline operator std::size_t() const noexcept {
-        std::size_t result = 0;
-#ifdef USEARCH_64BIT_ENV
+    inline operator std::uint64_t() const noexcept {
+        std::uint64_t result = 0;
         std::memcpy(&result, octets, 6);
-#else
-        std::memcpy(&result, octets, 4);
-#endif
         return result;
     }
 
