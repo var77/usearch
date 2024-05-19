@@ -164,16 +164,16 @@ class lantern_storage_gt {
     // the next three are used only in serialization/deserialization routines to know how to serialize vectors
     // since this is only for serde/vars are marked mutable to still allow const-ness of saving method interface on
     // storage instance
-    mutable size_t node_count_{};
+    mutable uint64_t node_count_{};
     bool loaded_ = false;
     float* pq_decompress_buf_{};
     bool pq_{};
-    mutable size_t vector_size_bytes_{};
+    mutable uint64_t vector_size_bytes_{};
     codebook_t pq_codebook_{};
     // defaulted to true because that is what test.cpp assumes when using this storage directly
     mutable bool exclude_vectors_ = true;
     // used to maintain proper alignment in stored indexes to make sure view() does not result in misaligned accesses
-    mutable size_t file_offset_{};
+    mutable uint64_t file_offset_{};
     const static constexpr char* default_error = "unknown lantern_storage error";
 
     // used in place of error handling throughout the class
@@ -225,7 +225,7 @@ class lantern_storage_gt {
         pq_decompress_buf_ = (float*)allocator_.allocate(vector_size_bytes_);
     }
 
-    inline node_t get_node_at(std::size_t idx) const noexcept {
+    inline node_t get_node_at(std::uint64_t idx) const noexcept {
         if (loaded_ && is_external_ak) {
             assert(retriever_ctx_ != nullptr);
             char* tape = (char*)external_node_retriever_(retriever_ctx_, idx);
@@ -235,7 +235,7 @@ class lantern_storage_gt {
         return nodes_[idx];
     }
 
-    inline byte_t* get_vector_at(std::size_t idx, byte_t* dst = nullptr) const noexcept {
+    inline byte_t* get_vector_at(std::uint64_t idx, byte_t* dst = nullptr) const noexcept {
         byte_t* res = nullptr;
         if (loaded_ && is_external_ak) {
             assert(retriever_ctx_ != nullptr);
@@ -401,7 +401,8 @@ class lantern_storage_gt {
             return;
         nodes_[slot] = node;
     }
-    void set_vector_at(size_t slot, const byte_t* vector_data, size_t vector_size, bool copy_vector, bool reuse_node) {
+    void set_vector_at(uint64_t slot, const byte_t* vector_data, size_t vector_size, bool copy_vector,
+                       bool reuse_node) {
         if (loaded_ && is_external_ak) {
             assert(retriever_ctx_ != nullptr);
             char* tape = (char*)external_node_retriever_(retriever_ctx_, slot);
