@@ -888,18 +888,18 @@ template <typename key_at, typename std::enable_if<!std::is_integral<key_at>::va
 // clang-format on
 
 template <typename element_at> struct hash_gt {
-    std::size_t operator()(element_at const& element) const noexcept { return std::hash<element_at>{}(element); }
+    std::uint64_t operator()(element_at const& element) const noexcept { return std::hash<element_at>{}(element); }
 };
 
 template <> struct hash_gt<uint40_t> {
-    std::size_t operator()(uint40_t const& element) const noexcept { return std::hash<std::size_t>{}(element); }
+    std::uint64_t operator()(uint40_t const& element) const noexcept { return std::hash<std::uint64_t>{}(element); }
 };
 
 // note:: uint48_t is used in lantern storage, but this hasher is not.
 // we specialize the hasher in storage provider and expose it via compressed_slot_hasher to allow for custom tid
 // hashing
 template <> struct hash_gt<uint48_t> {
-    std::size_t operator()(uint48_t const& element) const noexcept { return std::hash<std::size_t>{}(element); }
+    std::uint64_t operator()(uint48_t const& element) const noexcept { return std::hash<std::uint64_t>{}(element); }
 };
 
 /**
