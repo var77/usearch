@@ -9,6 +9,7 @@
 #ifndef UNUM_USEARCH_HPP
 #define UNUM_USEARCH_HPP
 
+#include <cstdint>
 #define USEARCH_VERSION_MAJOR 2
 #define USEARCH_VERSION_MINOR 10
 #define USEARCH_VERSION_PATCH 0
