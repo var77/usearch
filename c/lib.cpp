@@ -217,14 +217,14 @@ USEARCH_EXPORT uint64_t usearch_header_get_entry_slot(char* headerp) {
     uint64_t res = 0;
     index_serialized_header_t* second_header =
         reinterpret_cast<index_serialized_header_t*>(headerp + sizeof(index_dense_head_buffer_t));
-    memcpy(&res, &second_header->entry_slot, sizeof(second_header->entry_slot));
+    memcpy(&res, &second_header->entry_slot, sizeof(lantern_slot_t));
     return res;
 }
 
 USEARCH_EXPORT void usearch_header_set_entry_slot(char* headerp, uint64_t entry_slot) {
     index_serialized_header_t* second_header =
         reinterpret_cast<index_serialized_header_t*>(headerp + sizeof(index_dense_head_buffer_t));
-    memcpy(&second_header->entry_slot, &entry_slot, sizeof(second_header->entry_slot));
+    memcpy(&second_header->entry_slot, &entry_slot, sizeof(lantern_slot_t));
 }
 
 // ready!
