@@ -1993,7 +1993,7 @@ class index_gt {
         member_iterator_gt(index_t* index, std::size_t slot) noexcept : index_(index), slot_(slot) {}
 
         index_t* index_{};
-        std::size_t slot_{};
+        compressed_slot_t slot_{};
 
       public:
         using iterator_category = std::random_access_iterator_tag;
@@ -2132,7 +2132,7 @@ class index_gt {
     level_t max_level_{};
 
     /// @brief  The slot in which the only node of the top-level graph is stored.
-    std::size_t entry_slot_{};
+    compressed_slot_t entry_slot_{};
 
     using contexts_allocator_t = typename dynamic_allocator_traits_t::template rebind_alloc<context_t>;
 
@@ -2321,7 +2321,7 @@ class index_gt {
         std::size_t new_size{};
         std::size_t visited_members{};
         std::size_t computed_distances{};
-        std::size_t slot{};
+        compressed_slot_t slot{};
 
         explicit operator bool() const noexcept { return !error; }
         add_result_t failed(error_t message) noexcept {
@@ -2466,7 +2466,7 @@ class index_gt {
      *      It should be callable into distinctly different scenarios:
      *          - `distance_t operator() (value_at, entry_at)` - from new object to existing entries.
      *          - `distance_t operator() (entry_at, entry_at)` - between existing entries.
-     *      Where any possible `entry_at` has both two interfaces: `std::size_t slot()`, `vector_key_t key()`.
+     *      Where any possible `entry_at` has both two interfaces: `std::uint64_t slot()`, `vector_key_t key()`.
      *
      *  @param[in] key External identifier/name/descriptor for the new entry.
      *  @param[in] value Content that will be compared against other entries to index.
@@ -2508,8 +2508,8 @@ class index_gt {
 
         // Determining how much memory to allocate for the node depends on the target level
         std::unique_lock<std::mutex> new_level_lock(global_mutex_);
-        level_t max_level_copy = max_level_;      // Copy under lock
-        std::size_t entry_idx_copy = entry_slot_; // Copy under lock
+        level_t max_level_copy = max_level_;            // Copy under lock
+        compressed_slot_t entry_idx_copy = entry_slot_; // Copy under lock
         level_t target_level = level != -1 ? level : choose_random_level_(context.level_generator);
 
         // Make sure we are not overflowing
@@ -2711,7 +2711,8 @@ class index_gt {
             if (!top.reserve(expansion))
                 return result.failed("Out of memory!");
 
-            std::size_t closest_slot = search_for_one_(query, metric, prefetch, entry_slot_, max_level_, 0, context);
+            compressed_slot_t closest_slot =
+                search_for_one_(query, metric, prefetch, entry_slot_, max_level_, 0, context);
 
             // For bottom layer we need a more optimized procedure
             if (!search_to_find_in_base_(query, metric, predicate, prefetch, closest_slot, expansion, context))
@@ -3115,14 +3116,14 @@ class index_gt {
 
   private:
     template <typename value_at, typename metric_at, typename prefetch_at>
-    void connect_node_across_levels_(                                                           //
-        value_at&& value, metric_at&& metric, prefetch_at&& prefetch,                           //
-        std::size_t node_slot, std::size_t entry_slot, level_t max_level, level_t target_level, //
+    void connect_node_across_levels_(                                                                       //
+        value_at&& value, metric_at&& metric, prefetch_at&& prefetch,                                       //
+        compressed_slot_t node_slot, compressed_slot_t entry_slot, level_t max_level, level_t target_level, //
         index_update_config_t const& config, context_t& context) usearch_noexcept_m {
 
         // Go down the level, tracking only the closest match
-        std::size_t closest_slot = search_for_one_( //
-            value, metric, prefetch,                //
+        compressed_slot_t closest_slot = search_for_one_( //
+            value, metric, prefetch,                      //
             entry_slot, max_level, target_level, context);
 
         // From `target_level` down perform proper extensive search
@@ -3135,8 +3136,8 @@ class index_gt {
     }
 
     template <typename metric_at>
-    std::size_t connect_new_node_( //
-        metric_at&& metric, std::size_t new_slot, level_t level, context_t& context) usearch_noexcept_m {
+    compressed_slot_t connect_new_node_( //
+        metric_at&& metric, compressed_slot_t new_slot, level_t level, context_t& context) usearch_noexcept_m {
 
         node_t new_node = storage_->get_node_at(new_slot);
         top_candidates_t& top = context.top_candidates;
@@ -3160,7 +3161,7 @@ class index_gt {
 
     template <typename value_at, typename metric_at>
     void reconnect_neighbor_nodes_( //
-        metric_at&& metric, std::size_t new_slot, value_at&& value, level_t level,
+        metric_at&& metric, compressed_slot_t new_slot, value_at&& value, level_t level,
         context_t& context) usearch_noexcept_m {
 
         node_t new_node = storage_->get_node_at(new_slot);
@@ -3257,7 +3258,7 @@ class index_gt {
 
         vector_key_t key() const noexcept { return index_->get_node_at(slot()).key(); }
         compressed_slot_t slot() const noexcept { return neighbors_[current_]; }
-        friend inline std::size_t get_slot(candidates_iterator_t const& it) noexcept { return it.slot(); }
+        friend inline std::uint64_t get_slot(candidates_iterator_t const& it) noexcept { return it.slot(); }
         friend inline vector_key_t get_key(candidates_iterator_t const& it) noexcept { return it.key(); }
     };
 
@@ -3273,9 +3274,9 @@ class index_gt {
     };
 
     template <typename value_at, typename metric_at, typename prefetch_at = dummy_prefetch_t>
-    std::size_t search_for_one_(                                      //
+    compressed_slot_t search_for_one_(                                //
         value_at&& query, metric_at&& metric, prefetch_at&& prefetch, //
-        std::size_t closest_slot, level_t begin_level, level_t end_level, context_t& context) const noexcept {
+        compressed_slot_t closest_slot, level_t begin_level, level_t end_level, context_t& context) const noexcept {
 
         visits_set_t& visits = context.visits;
         visits.clear();
@@ -3322,7 +3323,7 @@ class index_gt {
     template <typename value_at, typename metric_at, typename prefetch_at = dummy_prefetch_t>
     bool search_to_insert_(                                           //
         value_at&& query, metric_at&& metric, prefetch_at&& prefetch, //
-        std::size_t start_slot, std::size_t new_slot, level_t level, std::size_t top_limit,
+        compressed_slot_t start_slot, compressed_slot_t new_slot, level_t level, std::size_t top_limit,
         context_t& context) noexcept {
 
         visits_set_t& visits = context.visits;
@@ -3398,7 +3399,7 @@ class index_gt {
     template <typename value_at, typename metric_at, typename predicate_at, typename prefetch_at>
     bool search_to_find_in_base_(                                                               //
         value_at&& query, metric_at&& metric, predicate_at&& predicate, prefetch_at&& prefetch, //
-        std::size_t start_slot, std::size_t expansion, context_t& context) const noexcept {
+        compressed_slot_t start_slot, std::size_t expansion, context_t& context) const noexcept {
 
         visits_set_t& visits = context.visits;
         next_candidates_t& next = context.next_candidates; // pop min, push
