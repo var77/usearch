@@ -354,9 +354,12 @@ class f16_bits_t {
     inline explicit operator bool() const noexcept { return f16_to_f32(uint16_) > 0.5f; }
 
     inline f16_bits_t(i8_converted_t) noexcept;
+    inline f16_bits_t(std::int8_t v) noexcept : uint16_(v) {}
     inline f16_bits_t(bool v) noexcept : uint16_(f32_to_f16(v)) {}
     inline f16_bits_t(float v) noexcept : uint16_(f32_to_f16(v)) {}
     inline f16_bits_t(double v) noexcept : uint16_(f32_to_f16(static_cast<float>(v))) {}
+
+    inline bool operator<(const f16_bits_t& other) const noexcept { return uint16_ < other.uint16_; }
 
     inline f16_bits_t operator+(f16_bits_t other) const noexcept { return {float(*this) + float(other)}; }
     inline f16_bits_t operator-(f16_bits_t other) const noexcept { return {float(*this) - float(other)}; }
