@@ -351,7 +351,6 @@ class f16_bits_t {
     inline f16_bits_t& operator=(f16_bits_t const&) = default;
 
     inline operator float() const noexcept { return f16_to_f32(uint16_); }
-    inline explicit operator bool() const noexcept { return f16_to_f32(uint16_) > 0.5f; }
 
     inline f16_bits_t(i8_converted_t) noexcept;
     inline f16_bits_t(std::int8_t v) noexcept : uint16_(v) {}
